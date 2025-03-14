@@ -1,0 +1,2 @@
+C:/Users/Admin/OneDrive/Documents/inventory_medical-main/inventory_medical-main/android/app/.cxx/RelWithDebInfo/4q3n501z/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/Admin/OneDrive/Documents/inventory_medical-main/inventory_medical-main/android/app/.cxx/RelWithDebInfo/4q3n501z/armeabi-v7a/CMakeFiles/rebuild_cache.dir
