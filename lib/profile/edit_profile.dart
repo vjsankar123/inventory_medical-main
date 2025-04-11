@@ -46,39 +46,66 @@ void initState() {
     super.dispose();
   }
 
-  void _updateProfile() async {
-
-
-    Map<String, String> updatedProfile = {
-      "pharmacy_name": shopNameController.text,
-      "owner_GST_number": gstNumberController.text,
-      "pharmacy_address": addressController.text,
-      "pincode": pinCodeController.text,
-      "description": descriptionController.text,
-      "allow_registration": isGovernmentRegistered ? "Registered" : "Not Registered",
-    };
+void _updateProfile() async {
+  Map<String, String> updatedProfile = {
+    "pharmacy_name": shopNameController.text,
+    "owner_GST_number": gstNumberController.text,
+    "pharmacy_address": addressController.text,
+    "pincode": pinCodeController.text,
+    "description": descriptionController.text,
+    "allow_registration": isGovernmentRegistered ? "Registered" : "Not Registered",
+  };
 
   bool success = await _apiService.updateprofile(
     widget.profileData['shop_id'] ?? "", // Ensure shop_id is provided
-    updatedProfile
-);
+    updatedProfile,
+  );
 
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('User updated successfully!'),
-            backgroundColor: Colors.green),
-      );
-      widget.onSave(updatedProfile);
-      Navigator.pop(context);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('Failed to update user.'),
-            backgroundColor: Colors.red),
-      );
-    }
+  if (success) {
+    _showSnackBar('Profile updated successfully!', isSuccess: true);
+    widget.onSave(updatedProfile);
+    Navigator.pop(context);
+  } else {
+    _showSnackBar('Failed to update profile. Please try again.', isSuccess: false);
   }
+}
+
+void _showSnackBar(String message, {bool isSuccess = false}) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Row(
+        children: [
+          Icon(
+            isSuccess ? Icons.check_circle : Icons.error,
+            color: isSuccess ? Colors.greenAccent : Colors.redAccent,
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Poppins',
+              ),
+            ),
+          ),
+        ],
+      ),
+      backgroundColor: isSuccess ? Color(0xFF00796B) : Color(0xFFD32F2F),
+      behavior: SnackBarBehavior.floating,
+      margin: EdgeInsets.all(16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      duration: Duration(seconds: 3),
+      elevation: 10,
+    ),
+  );
+}
+
+  
 
   @override
   Widget build(BuildContext context) {

@@ -150,69 +150,70 @@ class _ShopDetailsScreenState extends State<ShopDetailsScreen> {
       },
     );
   }
-void _showEmailSupport() {
-  showDialog(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        backgroundColor: Colors.white,
-        title: const Text(
-          'Email Support',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'For support, contact us at:',
-              style: TextStyle(fontSize: 16),
+
+  void _showEmailSupport() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          title: const Text(
+            'Email Support',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
             ),
-            const SizedBox(height: 8),
-            InkWell(
-              onTap: () async {
-                final Uri emailUri = Uri(
-                  scheme: 'mailto',
-                  path: 'pharmasupport@evvisolutions.com',
-                );
-                if (await canLaunchUrl(emailUri)) {
-                  await launchUrl(emailUri);
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Could not launch email client.')),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'For Queries, Email us at:',
+                style: TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              InkWell(
+                onTap: () async {
+                  final Uri emailUri = Uri(
+                    scheme: 'mailto',
+                    path: 'pharmasupport@evvisolutions.com',
                   );
-                }
+                  if (await canLaunchUrl(emailUri)) {
+                    await launchUrl(emailUri);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Could not launch email client.')),
+                    );
+                  }
+                },
+                child: const Text(
+                  'pharmasupport@evvisolutions.com',
+                  style: TextStyle(
+                    color: Colors.blue,
+                    decoration: TextDecoration.underline,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
               },
               child: const Text(
-                'pharmasupport@evvisolutions.com',
-                style: TextStyle(
-                  color: Colors.blue,
-                  decoration: TextDecoration.underline,
-                  fontSize: 16,
-                ),
+                'Close',
+                style: TextStyle(color: Colors.grey),
               ),
             ),
           ],
-        ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(); // Close the dialog
-            },
-            child: const Text(
-              'Close',
-              style: TextStyle(color: Colors.grey),
-            ),
-          ),
-        ],
-      );
-    },
-  );
-}
-
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -447,6 +448,42 @@ class _EditShopFormState extends State<EditShopForm> {
     isGovernmentRegistered = widget.isGovernmentRegistered;
   }
 
+
+void _showSnackBar(String message, {bool isSuccess = false}) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Row(
+        children: [
+          Icon(
+            isSuccess ? Icons.check_circle : Icons.error,
+            color: isSuccess ? Colors.greenAccent : Colors.redAccent,
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Poppins',
+              ),
+            ),
+          ),
+        ],
+      ),
+      backgroundColor: isSuccess ? Color(0xFF00796B) : Color(0xFFD32F2F),
+      behavior: SnackBarBehavior.floating,
+      margin: EdgeInsets.all(16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      duration: Duration(seconds: 3),
+      elevation: 10,
+    ),
+  );
+}
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -544,6 +581,7 @@ class _EditShopFormState extends State<EditShopForm> {
 
                   bool success = await apiService.updateprofile(widget.shopId,
                       updatedProfile); // Replace with actual shop ID
+
                   if (success) {
                     widget.onSave(
                       updatedShopName: shopNameController.text,
@@ -553,24 +591,16 @@ class _EditShopFormState extends State<EditShopForm> {
                       updatedDescription: descrptionController.text,
                       updatedIsGovernmentRegistered: isGovernmentRegistered,
                     );
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Shop updated successfully'),
-                          backgroundColor: Colors.green),
-                    );
+                    _showSnackBar('Shop updated successfully!',
+                        isSuccess: true);
                     Navigator.pop(context);
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Failed to update shop'),
-                          backgroundColor: Colors.red),
-                    );
+                    _showSnackBar('Failed to update shop. Please try again.',
+                        isSuccess: false);
                   }
                 }
               },
-              style:
-                  ElevatedButton.styleFrom(backgroundColor: Color(0xFF028090)),
-              child: const Text('Save', style: TextStyle(color: Colors.white)),
+              child: Text('Update Shop'),
             ),
           ],
         ),

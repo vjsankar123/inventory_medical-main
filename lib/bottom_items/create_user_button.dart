@@ -22,8 +22,7 @@ class _CreateUserButtonState extends State<CreateUserButton> {
 
 
 
-
- void _registerUser() async {
+void _registerUser() async {
   Map<String, dynamic> userData = {
     "username": _nameController.text,
     "email": _emailController.text,
@@ -38,18 +37,51 @@ class _CreateUserButtonState extends State<CreateUserButton> {
   bool success = await _apiService.createUser(userData);
 
   if (success) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('User created successfully!'), backgroundColor: Colors.green),
-    );
+    // Show success message using _showSnackBar
+    _showSnackBar('User created successfully!', isSuccess: true);
     Navigator.pop(context); // Close modal
   } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Failed to create user.'), backgroundColor: Colors.red),
-    );
+    // Show failure message using _showSnackBar
+    _showSnackBar('Failed to create user.', isSuccess: false);
   }
 }
 
 
+
+void _showSnackBar(String message, {bool isSuccess = false}) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Row(
+        children: [
+          Icon(
+            isSuccess ? Icons.check_circle : Icons.error,
+            color: isSuccess ? Colors.greenAccent : Colors.redAccent,
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Poppins',
+              ),
+            ),
+          ),
+        ],
+      ),
+      backgroundColor: isSuccess ? Color(0xFF00796B) : Color(0xFFD32F2F),
+      behavior: SnackBarBehavior.floating,
+      margin: EdgeInsets.all(16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      duration: Duration(seconds: 3),
+      elevation: 10,
+    ),
+  );
+}
   void _showCreateUserModal() {
     showModalBottomSheet(
       context: context,

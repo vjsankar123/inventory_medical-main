@@ -147,20 +147,20 @@ class _ExpenseTrackerScreenState extends State<ExpenseTrackerScreen> {
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: Colors.grey, width: 1),
                   ),
-                  child: TextField(
-                    controller: searchController,
-                    onChanged: filterExpense,
-                    decoration: const InputDecoration(
-                      hintText: 'Search Category...',
-                      hintStyle: TextStyle(color: Colors.grey),
-                      border: InputBorder.none,
-                      contentPadding:
-                          EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-                      prefixIcon: Icon(Icons.search, color: Colors.black),
-                    ),
-                    style: const TextStyle(color: Colors.black),
-                    cursorColor: Color(0xFF028090),
-                  ),
+                  // child: TextField(
+                  //   controller: searchController,
+                  //   onChanged: filterExpense,
+                  //   decoration: const InputDecoration(
+                  //     hintText: 'Search Category...',
+                  //     hintStyle: TextStyle(color: Colors.grey),
+                  //     border: InputBorder.none,
+                  //     contentPadding:
+                  //         EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                  //     prefixIcon: Icon(Icons.search, color: Colors.black),
+                  //   ),
+                  //   style: const TextStyle(color: Colors.black),
+                  //   cursorColor: Color(0xFF028090),
+                  // ),
                 )
               : const Text(
                   'Expense Details',
@@ -180,19 +180,19 @@ class _ExpenseTrackerScreenState extends State<ExpenseTrackerScreen> {
             },
           ),
           actions: [
-            IconButton(
-              icon: Icon(_isSearching ? Icons.cancel : Icons.search,
-                  color: Colors.black),
-              onPressed: () {
-                setState(() {
-                  _isSearching = !_isSearching;
-                  if (!_isSearching) {
-                    searchController.clear();
-                    filterExpense('');
-                  }
-                });
-              },
-            ),
+            // IconButton(
+            //   icon: Icon(_isSearching ? Icons.cancel : Icons.search,
+            //       color: Colors.black),
+            //   onPressed: () {
+            //     setState(() {
+            //       _isSearching = !_isSearching;
+            //       if (!_isSearching) {
+            //         searchController.clear();
+            //         filterExpense('');
+            //       }
+            //     });
+            //   },
+            // ),
           ],
         ),
         backgroundColor: Colors.white,

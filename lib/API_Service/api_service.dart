@@ -310,7 +310,8 @@ class ApiService {
     }
   }
 
-  Future<void> deleteUserFromApi(String staffId, VoidCallback onDelete) async {
+  // user deleted //
+  Future<bool> deleteUserFromApi(String staffId, VoidCallback onDelete) async {
     final Uri url = Uri.parse('$baseUrl/staff/user/$staffId');
     print('asd:$staffId');
     try {
@@ -320,6 +321,7 @@ class ApiService {
       if (response.statusCode == 200) {
         print('Staff deleted successfully.');
         onDelete(); // Notify UI update
+        return true; // Return true for success
       } else {
         final data = jsonDecode(response.body);
         throw Exception(
@@ -327,7 +329,7 @@ class ApiService {
       }
     } catch (e) {
       print('Error during staff deletion: $e');
-      rethrow;
+      return false; // Return false for failure
     }
   }
 
@@ -364,7 +366,6 @@ class ApiService {
 
 // category count page //
 
-
   Future<int> fetchTotalCategories() async {
     final url = '$baseUrl/pro_category/all_category_pagination?page=1&limit=10';
     print('Fetching: \$url');
@@ -375,7 +376,8 @@ class ApiService {
         final data = jsonDecode(response.body);
         return data["totalCategories"] ?? 0;
       } else {
-        throw Exception('Failed to fetch categories: \${response.reasonPhrase}');
+        throw Exception(
+            'Failed to fetch categories: \${response.reasonPhrase}');
       }
     } catch (e) {
       print("Error fetching categories: \$e");
@@ -394,13 +396,15 @@ class ApiService {
         final data = jsonDecode(response.body);
         return data["total_invoice"] ?? 0;
       } else {
-        throw Exception('Failed to fetch categories: \${response.reasonPhrase}');
+        throw Exception(
+            'Failed to fetch categories: \${response.reasonPhrase}');
       }
     } catch (e) {
       print("Error fetching categories: \$e");
       return 0;
     }
   }
+
   // create category //
   Future<bool> createCategory(Map<String, dynamic> categorydata) async {
     final url = '$baseUrl/pro_category/insert_category';
@@ -859,21 +863,23 @@ class ApiService {
     }
   }
 
+  // profile edit//
   Future<bool> updateprofile(
       String shopId, Map<String, dynamic> updatedProfile) async {
-    print('hjl:$updatedProfile');
+    print('Updating Profile Data: $updatedProfile');
     final url =
         '$baseUrl/shop/update/$shopId'; // Ensure shopId is passed in URL
-    print("Updating shop with data: $shopId");
+    print("Updating shop with ID: $shopId");
 
     try {
       final response = await _makeRequest(
-        url.toString(),
+        url,
         'PUT', // or 'PATCH' based on API
         body: updatedProfile,
       );
 
       if (response.statusCode == 200) {
+        print("Shop update successful!");
         return true;
       } else {
         print(
@@ -991,8 +997,10 @@ class ApiService {
 //   }
 
 // Invoice list page //
-  Future<List<Map<String, dynamic>>> fetchInvoices(
-      {int page = 1, int limit = 10}) async {
+  Future<List<Map<String, dynamic>>> fetchInvoices({
+    int page = 1,
+    int limit = 10,
+  }) async {
     final url =
         '$baseUrl/invoice/invoiceall_pagination?page=$page&limit=$limit';
     print('Fetching: $url');
@@ -1014,7 +1022,7 @@ class ApiService {
               "invoice_created_at": inv["invoice_created_at"] ?? "",
               "total_price": inv["total_price"]?.toString() ?? "0.0",
               "payment_status": inv["payment_status"] ?? "Unknown",
-              "payment_method": inv["payment_method"]?? "Unknown",
+              "payment_method": inv["payment_method"] ?? "Unknown",
               "customer_name": inv["customer_name"] ?? "N/A",
               "totalGST": inv["totalGST"]?.toString() ?? "0.0",
               "products": inv["products"]?.toString() ?? "No products",
@@ -1234,7 +1242,7 @@ class ApiService {
   Future<List<Map<String, dynamic>>> fetchSalesByDate({
     required String fromDate,
     required String toDate,
-      String? search,
+    String? search,
     String? productName,
     // String? categoryName,
     int page = 1,
@@ -1248,7 +1256,7 @@ class ApiService {
     print("GET Request: $url");
 
     try {
-        final Map<String, String> queryParams = {};
+      final Map<String, String> queryParams = {};
       final response = await _makeRequest(url, 'GET');
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
@@ -1261,26 +1269,26 @@ class ApiService {
       throw Exception("Error fetching sales data");
     }
   }
-  
-Future<Map<String, dynamic>?> createBill(Map<String, dynamic> payload) async {
-  final url = '$baseUrl/invoice/invoicesin';
-  print("Making POST request to: $url");
 
-  try {
-    final response = await _makeRequest(url, 'POST', body: payload);
+  Future<Map<String, dynamic>?> createBill(Map<String, dynamic> payload) async {
+    final url = '$baseUrl/invoice/invoicesin';
+    print("Making POST request to: $url");
 
-    if (response.statusCode == 201) {
-      print("Invoice created: ${response.body}");
-      return jsonDecode(response.body); // Return full response
-    } else {
-      print("Failed: ${response.body}");
+    try {
+      final response = await _makeRequest(url, 'POST', body: payload);
+
+      if (response.statusCode == 201) {
+        print("Invoice created: ${response.body}");
+        return jsonDecode(response.body); // Return full response
+      } else {
+        print("Failed: ${response.body}");
+        return null;
+      }
+    } catch (e) {
+      print("Error: $e");
       return null;
     }
-  } catch (e) {
-    print("Error: $e");
-    return null;
   }
-}
 
 // return create //
   Future<bool> createReturn(Map<String, dynamic> returnData) async {
@@ -1308,25 +1316,32 @@ Future<Map<String, dynamic>?> createBill(Map<String, dynamic> payload) async {
   Future<Map<String, dynamic>> getProductsByInvoice(
       String invoiceNumber) async {
     final url = '$baseUrl/invoice/invoice/$invoiceNumber';
+    print('Making GET request to: $url');
     try {
       final response = await _makeRequest(url, 'GET');
       if (response.statusCode == 200) {
         final dynamic decodedData = jsonDecode(response.body);
         print('API Response: $decodedData');
 
+        // Extract 'data' field
         if (decodedData is Map<String, dynamic> &&
-            decodedData.containsKey('products') &&
-            decodedData.containsKey('invoice_id')) {
-          return {
-            'invoice_id': decodedData['invoice_id'].toString(),
-            'products': (decodedData['products'] as List<dynamic>).map((item) {
-              return {
-                'product_id': item['product_id']?.toString() ?? "0",
-                'product_name': item['product_name'] ?? "Unknown Product",
-                'quantity': item['quantity'] ?? 0,
-              };
-            }).toList(),
-          };
+            decodedData.containsKey('data')) {
+          final dynamic data = decodedData['data'];
+
+          if (data is Map<String, dynamic> &&
+              data.containsKey('products') &&
+              data.containsKey('invoice_id')) {
+            return {
+              'invoice_id': data['invoice_id'].toString(),
+              'products': (data['products'] as List<dynamic>).map((item) {
+                return {
+                  'product_id': item['product_id']?.toString() ?? "0",
+                  'product_name': item['product_name'] ?? "Unknown Product",
+                  'quantity': item['quantity'] ?? 0,
+                };
+              }).toList(),
+            };
+          }
         }
 
         print('Unexpected response structure: $decodedData');
@@ -1342,8 +1357,9 @@ Future<Map<String, dynamic>?> createBill(Map<String, dynamic> payload) async {
   }
 
   // csv and pdf file download //
-Future<void> exportCSVReport(String fromDate, String toDate) async {
-  final url = '$baseUrl/invoice/sales-report/csv?startDate=$fromDate&endDate=$toDate';
+  Future<void> exportCSVReport(String fromDate, String toDate) async {
+    final url =
+        '$baseUrl/invoice/sales-report/csv?startDate=$fromDate&endDate=$toDate';
     try {
       final response = await _makeRequest(
         url,
@@ -1358,7 +1374,8 @@ Future<void> exportCSVReport(String fromDate, String toDate) async {
   }
 
   Future<void> exportPDFReport(String fromDate, String toDate) async {
-    final url = '$baseUrl/invoice/sales-report/pdf?startDate=$fromDate&endDate=$toDate';
+    final url =
+        '$baseUrl/invoice/sales-report/pdf?startDate=$fromDate&endDate=$toDate';
     try {
       final response = await _makeRequest(
         url,
@@ -1388,36 +1405,34 @@ Future<void> exportCSVReport(String fromDate, String toDate) async {
       {int page = 1, int limit = 10}) async {
     final url =
         '$baseUrl/return/getAll_rejectedInvoices?page=$page&limit=$limit';
-    print('Fetching: $url');
-
     try {
       final response = await _makeRequest(url, 'GET');
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
-        if (data['success'] == true && data['data'] is List) {
-          totalPages = data['total_page'] ?? 1;
-          return (data['data'] as List).map((ret) {
-            return {
-              "invoice_id": ret["invoice_id"]?.toString() ?? "0",
-              "product_name": ret["product_name"] ?? "",
-              "quantity": ret["quantity"]?.toString() ?? "0",
-              // "return_date": ret["return_date"] ?? "",
-              "return_reason": ret["return_reason"] ?? "",
-            };
-          }).toList();
-        } else {
+
+          if (data['success'] == true && data['data'] is List) {
+        totalPages = data["totalPages"] ?? 1; // ✅ Fix: Use totalPages correctly
+        print('assajde: $data');
+        return (data['data'] as List).map((ret) {
+          return {
+            "invoice_id": ret["invoice_id"]?.toString() ?? "0",
+            "product_name": ret["product_name"] ?? "",
+            "quantity": ret["quantity"]?.toString() ?? "0",
+            "return_reason": ret["return_reason"] ?? "",
+          };
+        }).toList();
+    } else {
           throw Exception('Invalid data format received');
         }
       } else {
-        throw Exception('Failed to fetch returns: ${response.reasonPhrase}');
+        throw Exception('Failed to fetch Invoices: ${response.reasonPhrase}');
       }
     } catch (e) {
-      print("Error fetching returns: $e");
+      print("Error fetching invoices: $e");
       return [];
     }
   }
-
   // income page list //
   Future<Map<String, dynamic>?> fetchIncomeData(String period) async {
     try {
@@ -1456,56 +1471,67 @@ Future<void> exportCSVReport(String fromDate, String toDate) async {
     }
   }
 
-Future<List<Map<String, dynamic>>> stockProducts({
-  String? status,
-  String? search,
-}) async {
-  try {
-    final Map<String, String> queryParams = {};
+  // stock product//
+  Future<List<Map<String, dynamic>>> stockProducts({
+    String? status,
+    String? search,
+  }) async {
+    try {
+      final Map<String, String> queryParams = {};
 
-    if (status != null && status != 'All') {
+      print("Filtering by status: $status"); // Debugging output
+
+        if (status != null && status != 'All') {
       queryParams['status'] = status;
     }
+      if (search != null && search.trim().isNotEmpty) {
+        queryParams['search'] = Uri.encodeComponent(search.trim());
+      }
 
-    if (search != null && search.trim().isNotEmpty) {
-      queryParams['search'] = search.trim();
+      final queryString =
+          queryParams.entries.map((e) => '${e.key}=${e.value}').join('&');
+
+      final Uri url =
+          Uri.parse('$baseUrl/products/stock_list_product?$queryString');
+
+      print("Requesting URL: $url"); // Debugging output
+
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        if (data['data'] == null || data['data'].isEmpty) {
+          print("No products found.");
+          return []; // Return empty list instead of throwing an error
+        }
+
+        // Ensure correct type conversion
+        final List<Map<String, dynamic>> productList =
+            List<Map<String, dynamic>>.from(
+          data['data'].map((product) => {
+                "id": product["id"].toString(),
+                "product_name": product["product_name"] ?? "Unknown",
+                "stock_status": product["stock_status"] ?? "No Status",
+                "product_category":
+                    product["product_category"] ?? "No Category",
+                "expiry_date": product["expiry_date"] ?? "No Expiry Date",
+                "product_quantity": product["product_quantity"].toString(),
+              }),
+        );
+
+        print("Fetched data: $productList"); // Debugging output
+
+        return productList;
+      } else {
+        print("API Error: ${response.statusCode}, Response: ${response.body}");
+        throw Exception('Failed to fetch products: ${response.reasonPhrase}');
+      }
+    } catch (e) {
+      print("Error fetching products: $e");
+      return [];
     }
-
-    final Uri url = Uri.parse('$baseUrl/products/stock_list_product')
-        .replace(queryParameters: queryParams);
-
-    print("Requesting URL: $url"); // Debugging: Check the full URL
-
-    final response = await http.get(url);
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-
-      if (data['data'] == null) return [];
-
-      final productList = data['data'] as List;
-
-      print("Fetched Products: $productList"); // Debugging output
-
-      return productList.map((product) {
-        return {
-          "id": product["id"].toString(),
-          "product_name": product["product_name"] ?? "Unknown",
-          "stock_status": product["stock_status"] ?? "No Status",
-          "product_category": product["product_category"] ?? "No Category",
-          "expiry_date": product["expiry_date"] ?? "No Expiry Date",
-          "product_quantity": product["product_quantity"].toString(),
-        };
-      }).toList();
-    } else {
-      throw Exception('Failed to fetch products: ${response.reasonPhrase}');
-    }
-  } catch (e) {
-    print("Error fetching products: $e");
-    return [];
   }
-}
-
 
 // fetched deleted products//
   int pages = 1;
@@ -1582,117 +1608,118 @@ Future<List<Map<String, dynamic>>> stockProducts({
       return false;
     }
   }
+
 // Fetch the invoice PDF from the server
-Future<File?> fetchInvoicePrints(String invoiceId) async {
-  final url = '$baseUrl/invoice/invoicebyid/pdfdownload/$invoiceId';
-  print('📄 Fetching invoice PDF from: $url');
+  Future<File?> fetchInvoicePrints(String invoiceId) async {
+    final url = '$baseUrl/invoice/invoicebyid/pdfdownload/$invoiceId';
+    print('📄 Fetching invoice PDF from: $url');
 
-  try {
-    final response = await _makeRequest(url, 'GET');
+    try {
+      final response = await _makeRequest(url, 'GET');
 
-    if (response.statusCode == 200) {
-      final output = await getTemporaryDirectory();
-      final file = File("${output.path}/invoice_$invoiceId.pdf");
-      await file.writeAsBytes(response.bodyBytes);
-      print('✅ PDF saved to: ${file.path}');
-      return file;
-    } else {
-      print('❌ API Error (${response.statusCode}): ${response.body}');
+      if (response.statusCode == 200) {
+        final output = await getTemporaryDirectory();
+        final file = File("${output.path}/invoice_$invoiceId.pdf");
+        await file.writeAsBytes(response.bodyBytes);
+        print('✅ PDF saved to: ${file.path}');
+        return file;
+      } else {
+        print('❌ API Error (${response.statusCode}): ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('❌ API Exception: $e');
       return null;
     }
-  } catch (e) {
-    print('❌ API Exception: $e');
-    return null;
   }
-}
 
   // stock report//
-  
-Future<void> exportedCSVReport(String status) async {
-  final url = '$baseUrl/products/downloadStockCSV?status=$status&downloadStockCSV=true';
-  try {
-    final response = await _makeRequest(url, 'GET');
-    await _saveAndOpenFiles(response.bodyBytes, 'stock_report.csv');
-  } catch (e) {
-    print("Error exporting CSV: $e");
-    rethrow;
+  Future<void> exportedCSVReport(String status) async {
+    final url =
+        '$baseUrl/products/downloadStockCSV?status=${Uri.encodeComponent(status)}&downloadStockCSV=true';
+    try {
+      final response = await _makeRequest(url, 'GET');
+      await _saveAndOpenFiles(response.bodyBytes, 'stock_report.csv');
+    } catch (e) {
+      print("Error exporting CSV: $e");
+      rethrow;
+    }
   }
-}
 
-Future<void> exportedPDFReport(String status) async {
-  final url = '$baseUrl/products/downloadStockPDF?status=$status&downloadStockPDF=true';
-  try {
-    final response = await _makeRequest(url, 'GET');
-    await _saveAndOpenFiles(response.bodyBytes, 'stock_report.pdf');
-  } catch (e) {
-    print("Error exporting PDF: $e");
-    rethrow;
+  Future<void> exportedPDFReport(String status) async {
+    final url =
+        '$baseUrl/products/downloadStockPDF?status=${Uri.encodeComponent(status)}&downloadStockPDF=true';
+    try {
+      final response = await _makeRequest(url, 'GET');
+      await _saveAndOpenFiles(response.bodyBytes, 'stock_report.pdf');
+    } catch (e) {
+      print("Error exporting PDF: $e");
+      rethrow;
+    }
   }
-}
 
-Future<void> _saveAndOpenFiles(List<int> bytes, String filename) async {
-  final directory = await getApplicationDocumentsDirectory();
-  final filePath = '${directory.path}/$filename';
-  final file = File(filePath);
+  Future<void> _saveAndOpenFiles(List<int> bytes, String filename) async {
+    final directory = await getApplicationDocumentsDirectory();
+    final filePath = '${directory.path}/$filename';
+    final file = File(filePath);
 
-  await file.writeAsBytes(bytes);
-  print('File saved to: $filePath');
+    await file.writeAsBytes(bytes);
+    print('File saved to: $filePath');
 
-  OpenFile.open(filePath); // Automatically open the file
-}
-
+    OpenFile.open(filePath); // Automatically open the file
+  }
 
 // view category//
-Future<Map<String, dynamic>?> ViewCategory(String categoryId) async {
-  final url = '$baseUrl/pro_category/id_category/$categoryId';
-  print('URL: $url');
+  Future<Map<String, dynamic>?> ViewCategory(String categoryId) async {
+    final url = '$baseUrl/pro_category/id_category/$categoryId';
+    print('URL: $url');
 
-  try {
-     final response = await _makeRequest(
+    try {
+      final response = await _makeRequest(
         url,
         'GET',
       );
 
-    if (response.statusCode == 200) {
-      print('Category fetched successfully');
-      return json.decode(response.body); // Ensure 'data' is returned
-    } else {
-      print('Error: ${response.statusCode} - ${response.body}');
+      if (response.statusCode == 200) {
+        print('Category fetched successfully');
+        return json.decode(response.body); // Ensure 'data' is returned
+      } else {
+        print('Error: ${response.statusCode} - ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('Error fetching category: $e');
       return null;
     }
-  } catch (e) {
-    print('Error fetching category: $e');
-    return null;
   }
-}   
-   
-//search category//
-Future<List<Map<String, dynamic>>> searchCategory(String query) async {
-  final url = "$baseUrl/pro_category/categories?search=$query";
-  try {
-    final response = await _makeRequest(url, 'GET');
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      final categoryList = data["data"] as List;
-      print('jkl:$categoryList');
-      return categoryList.map((category) {
-        return {
-          'id': category['id'], // Ensure 'id' exists
-          'category_name': category["category_name"]?.toString() ?? "Unknown",
-          'description': category["description"]?.toString() ?? "",
-        };
-      }).toList();
-    } else {
+//search category//
+  Future<List<Map<String, dynamic>>> searchCategory(String query) async {
+    final url = "$baseUrl/pro_category/categories?search=$query";
+    try {
+      final response = await _makeRequest(url, 'GET');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final categoryList = data["data"] as List;
+        print('jkl:$categoryList');
+        return categoryList.map((category) {
+          return {
+            'id': category['id'], // Ensure 'id' exists
+            'category_name': category["category_name"]?.toString() ?? "Unknown",
+            'description': category["description"]?.toString() ?? "",
+          };
+        }).toList();
+      } else {
+        return [];
+      }
+    } catch (e) {
       return [];
     }
-  } catch (e) {
-    return [];
   }
 
-}
 // sales amount //
-Future<Map<String, dynamic>?> getTotalInvoiceAmount(String period) async {
+  Future<Map<String, dynamic>?> getTotalInvoiceAmount(String period) async {
     try {
       final url = '$baseUrl/invoice/invoice_total_amount';
       final response = await _makeRequest(url, 'GET');
@@ -1710,28 +1737,26 @@ Future<Map<String, dynamic>?> getTotalInvoiceAmount(String period) async {
   }
 
 // customer count//
-Future<Map<String, dynamic>?> getTotalCustomerCount(String period) async {
-  try {
-    final url = '$baseUrl/customer/cus_total_count';
-    final response = await _makeRequest(url, 'GET');
-    final data = jsonDecode(response.body);
+  Future<Map<String, dynamic>?> getTotalCustomerCount(String period) async {
+    try {
+      final url = '$baseUrl/customer/cus_total_count';
+      final response = await _makeRequest(url, 'GET');
+      final data = jsonDecode(response.body);
 
-    print('API Response: $data'); // Debugging the response
+      print('API Response: $data'); // Debugging the response
 
-    // ✅ Ensure the response is valid and contains the expected key
-    if (data != null && data is Map<String, dynamic> && data.containsKey('total_customers')) {
-      return data; // Return valid data
-    } else {
-      print('Unexpected API Response: $data'); // Log unexpected responses
+      // ✅ Ensure the response is valid and contains the expected key
+      if (data != null &&
+          data is Map<String, dynamic> &&
+          data.containsKey('total_customers')) {
+        return data; // Return valid data
+      } else {
+        print('Unexpected API Response: $data'); // Log unexpected responses
+        return null;
+      }
+    } catch (e) {
+      print('API Exception: $e');
       return null;
     }
-  } catch (e) {
-    print('API Exception: $e');
-    return null;
   }
-}
-
-
-
-
 }

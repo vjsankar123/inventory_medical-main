@@ -11,11 +11,16 @@ class Homepage extends StatefulWidget {
 
 class _HomepageState extends State<Homepage> {
   final NetworkListener _networkListener = NetworkListener();
-  bool isSaleVisible = false; // Track visibility of sale amount
+  bool isSaleVisible = false;
   String saleAmount = 'Loading...';
   String categoryCount = 'Loading...';
   String invoiceCount = 'Loading...';
   String customerCount = 'Loading...';
+
+  double dailyIncome = 0.0;
+  double monthlyIncome = 0.0;
+  double sixMonthIncome = 0.0;
+  double yearlyIncome = 0.0;
 
   void toggleVisibility() {
     setState(() {
@@ -51,6 +56,34 @@ class _HomepageState extends State<Homepage> {
     }
   }
 
+  Future<void> fetchIncomeData() async {
+    try {
+      final dailyResponse = await apiService.fetchIncomeData('DAILY');
+      final monthlyResponse = await apiService.fetchIncomeData('MONTHLY');
+      final sixMonthResponse = await apiService.fetchIncomeData('6MONTH');
+      final yearlyResponse = await apiService.fetchIncomeData('YEARLY');
+
+      if (mounted) {
+        setState(() {
+          dailyIncome = double.tryParse(
+                  dailyResponse?['total_income']?.toString() ?? '0.0') ??
+              0.0;
+          monthlyIncome = double.tryParse(
+                  monthlyResponse?['total_income']?.toString() ?? '0.0') ??
+              0.0;
+          sixMonthIncome = double.tryParse(
+                  sixMonthResponse?['total_income']?.toString() ?? '0.0') ??
+              0.0;
+          yearlyIncome = double.tryParse(
+                  yearlyResponse?['total_income']?.toString() ?? '0.0') ??
+              0.0;
+        });
+      }
+    } catch (e) {
+      print('Error fetching income data: $e');
+    }
+  }
+
   Future<void> fetchInvoiceCount() async {
     try {
       final totalInvoice = await apiService.fetchTotalInvoice();
@@ -66,43 +99,39 @@ class _HomepageState extends State<Homepage> {
   }
 
   Future<void> fetchCustomerCount(String period) async {
-  try {
-    final response = await apiService.getTotalCustomerCount(period);
-    print("Customer API Response: $response"); // Debug log
-
-    if (response != null && response.containsKey('total_customers')) {
-      setState(() {
-        customerCount = response['total_customers'].toString();
-      });
-    } else {
-      print("Invalid customer count format: $response");
+    try {
+      final response = await apiService.getTotalCustomerCount(period);
+      if (response != null && response.containsKey('total_customers')) {
+        setState(() {
+          customerCount = response['total_customers'].toString();
+        });
+      } else {
+        setState(() {
+          customerCount = 'Error';
+        });
+      }
+    } catch (error) {
+      print("Error fetching customer count: $error");
       setState(() {
         customerCount = 'Error';
       });
     }
-  } catch (error) {
-    print("Error fetching customer count: $error");
-    setState(() {
-      customerCount = 'Error';
-    });
   }
-}
-
-
 
   @override
   void initState() {
     super.initState();
-    _networkListener.startListening(context); // Start listening for network changes
-    fetchSaleAmount('week'); // Fetch sale amount (default to 'week')
-    fetchCategoryCount(); // Fetch category count
-    fetchInvoiceCount(); // Fetch invoice count
-    fetchCustomerCount('week'); // Fetch customer count
+    _networkListener.startListening(context);
+    fetchSaleAmount('week');
+    fetchCategoryCount();
+    fetchInvoiceCount();
+    fetchCustomerCount('week');
+    fetchIncomeData();
   }
 
   @override
   void dispose() {
-    _networkListener.stopListening(); // Stop listening when the widget is disposed
+    _networkListener.stopListening();
     super.dispose();
   }
 
@@ -110,23 +139,44 @@ class _HomepageState extends State<Homepage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: buildStatusCards(context, isSaleVisible, toggleVisibility, saleAmount, categoryCount, invoiceCount, customerCount),
+      body: buildStatusCards(
+        context,
+        isSaleVisible,
+        toggleVisibility,
+        saleAmount,
+        categoryCount,
+        invoiceCount,
+        customerCount,
+        dailyIncome,
+        monthlyIncome,
+        sixMonthIncome,
+        yearlyIncome,
+      ),
     );
   }
 }
 
 class OverviewData {
   final String category;
-  final double product;
-  final double user;
-  final double order;
-  final double outOfStock;
+  final double value;
   final Color color;
 
-  OverviewData(this.category, this.product, this.user, this.order, this.outOfStock, this.color);
+  OverviewData(this.category, this.value, this.color);
 }
 
-Widget buildStatusCards(BuildContext context, bool isSaleVisible, VoidCallback toggleVisibility, String saleAmount, String categoryCount, String invoiceCount, String customerCount) {
+Widget buildStatusCards(
+  BuildContext context,
+  bool isSaleVisible,
+  VoidCallback toggleVisibility,
+  String saleAmount,
+  String categoryCount,
+  String invoiceCount,
+  String customerCount,
+  double dailyIncome,
+  double monthlyIncome,
+  double sixMonthIncome,
+  double yearlyIncome,
+) {
   return SingleChildScrollView(
     child: Padding(
       padding: const EdgeInsets.only(top: 20.0, left: 16.0, right: 16.0),
@@ -166,7 +216,7 @@ Widget buildStatusCards(BuildContext context, bool isSaleVisible, VoidCallback t
               ],
             ),
           ),
-          SizedBox(height: 20),
+          SizedBox(height: 30),
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -174,7 +224,7 @@ Widget buildStatusCards(BuildContext context, bool isSaleVisible, VoidCallback t
                 child: Container(
                   padding: EdgeInsets.all(8),
                   child: Text(
-                    'Overview',
+                    'Income Overview',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -187,30 +237,27 @@ Widget buildStatusCards(BuildContext context, bool isSaleVisible, VoidCallback t
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: SfCircularChart(
               legend: Legend(
-                isVisible: true,
-                overflowMode: LegendItemOverflowMode.wrap,
-              ),
+                  isVisible: true, overflowMode: LegendItemOverflowMode.wrap),
               tooltipBehavior:
                   TooltipBehavior(enable: true, format: 'point.x: point.y'),
               series: <RadialBarSeries<OverviewData, String>>[
                 RadialBarSeries<OverviewData, String>(
                   dataSource: [
-                    OverviewData('Product', 40, 30, 20, 10, Colors.blue),
-                    OverviewData('User', 400, 300, 200, 100, Colors.green),
-                    OverviewData('Order', 600, 500, 400, 300, Colors.orange),
-                    OverviewData('Out of Stock', 300, 200, 100, 50, Colors.red),
+                    OverviewData('Daily', dailyIncome, Colors.blue),
+                    OverviewData('Monthly', monthlyIncome, Colors.green),
+                    OverviewData('6 Months', sixMonthIncome, Colors.orange),
+                    OverviewData('Yearly', yearlyIncome, Colors.red),
                   ],
+                  xValueMapper: (OverviewData data, _) => data.category,
+                  yValueMapper: (OverviewData data, _) => data.value,
+                  pointColorMapper: (OverviewData data, _) => data.color,
+                  dataLabelSettings: DataLabelSettings(isVisible: false),
                   trackColor: Colors.grey[200]!,
                   trackOpacity: 0.5,
-                  maximumValue: 600,
                   radius: '90%',
                   innerRadius: '40%',
-                  xValueMapper: (OverviewData data, _) => data.category,
-                  yValueMapper: (OverviewData data, _) => data.product,
-                  pointColorMapper: (OverviewData data, _) => data.color,
-                  dataLabelSettings: DataLabelSettings(isVisible: true),
                   cornerStyle: CornerStyle.bothCurve,
-                  gap: '4%',
+                  gap: '8%', // **Set the gap between radial bars**
                 ),
               ],
             ),

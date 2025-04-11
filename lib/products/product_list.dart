@@ -249,47 +249,84 @@ Future<void> _fetchProductSuggestions(String query) async {
   }
 }
 
-  void _deleteProduct(Map<String, dynamic> product) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Confirm Delete'),
-          content: Text('Are you sure you want to delete this product?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Cancel'),
+
+void _showSnackBar(String message, {bool isSuccess = false}) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Row(
+        children: [
+          Icon(
+            isSuccess ? Icons.check_circle : Icons.error,
+            color: isSuccess ? Colors.greenAccent : Colors.redAccent,
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Poppins',
+              ),
             ),
-            TextButton(
-              onPressed: () async {
-                Navigator.pop(context);
-                final productId = product['id'].toString(); // Get supplier ID
-                try {
-                  await apiService.deleteProductsFromApi(productId, () {
-                    setState(() {
-                      productList
-                          .removeWhere((item) => item['id'] == productId);
-                      filteredData = List.from(productList);
-                    });
+          ),
+        ],
+      ),
+      backgroundColor: isSuccess ? Color(0xFF00796B) : Color(0xFFD32F2F),
+      behavior: SnackBarBehavior.floating,
+      margin: EdgeInsets.all(16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      duration: Duration(seconds: 3),
+      elevation: 10,
+    ),
+  );
+}
+
+void _deleteProduct(Map<String, dynamic> product) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Confirm Delete'),
+        content: Text('Are you sure you want to delete this product?'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final productId = product['id'].toString(); // Get product ID
+              try {
+                // Perform delete operation
+                await apiService.deleteProductsFromApi(productId, () {
+                  setState(() {
+                    // Remove product from the list
+                    products.removeWhere((item) => item['id'] == productId);
                   });
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed to delete supplier: $e')),
-                  );
-                }
-                // _fetchProducts();
-                // Navigator.of(context).pop();
-              },
-              child: Text('OK', style: TextStyle(color: Colors.red)),
-            ),
-          ],
-        );
-      },
-    );
-  }
+
+                  // Show success message using _showSnackBar
+                  _showSnackBar('Product deleted successfully!', isSuccess: true);
+                });
+              } catch (e) {
+                // Show failure message using _showSnackBar
+                _showSnackBar('Failed to delete product: $e', isSuccess: false);
+              }
+            },
+            child: Text('OK', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      );
+    },
+  );
+}
+
 
   void _viewProduct(Map<String, dynamic> product) {
     // Extract productId from the product map

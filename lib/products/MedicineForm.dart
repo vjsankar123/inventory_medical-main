@@ -100,6 +100,43 @@ class _MedicineFormState extends State<MedicineForm> {
     }
   }
 
+
+  
+void _showSnackBar(String message, {bool isSuccess = false}) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Row(
+        children: [
+          Icon(
+            isSuccess ? Icons.check_circle : Icons.error,
+            color: isSuccess ? Colors.greenAccent : Colors.redAccent,
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Poppins',
+              ),
+            ),
+          ),
+        ],
+      ),
+      backgroundColor: isSuccess ? Color(0xFF00796B) : Color(0xFFD32F2F),
+      behavior: SnackBarBehavior.floating,
+      margin: EdgeInsets.all(16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      duration: Duration(seconds: 3),
+      elevation: 10,
+    ),
+  );
+}
+
   Future<void> fetchAndDisplayCategory() async {
     if (_isFetchingMore) return;
 
@@ -132,45 +169,38 @@ class _MedicineFormState extends State<MedicineForm> {
     }
   }
 
-  Future<void> _submitForm() async {
-    Map<String, dynamic> productData = {
-      'product_name': _nameController.text,
-      'brand_name': _brandController.text,
-      'generic_name': _genericNameController.text,
-      'product_batch_no': _batchnoNameController.text,
-      'product_price': _mrpPriceController.text,
-      'selling_price': _sellingPriceController.text,
-      'product_description': _descriptionController.text,
-      'product_quantity': _quantityController.text,
-      'product_discount': _discountPercentageController.text,
-      'supplier_price': _supplierPriceController.text,
-      'GST': _selectedGST,
-      'supplier': _selectedSupplier, // Ensure this is an ID, not null
-      'expiry_date': _expiryDateController.text, // Already in YYYY-MM-DD
-      'MFD': _mfdDateController.text, // Already in YYYY-MM-DD
-      'product_category': _selectedCategory,
-      'stock_status': _availabilityStatus,
-    };
 
-    bool success = await _apiService.createProduct(productData);
+  
+Future<void> _submitForm() async {
+  Map<String, dynamic> productData = {
+    'product_name': _nameController.text,
+    'brand_name': _brandController.text,
+    'generic_name': _genericNameController.text,
+    'product_batch_no': _batchnoNameController.text,
+    'product_price': _mrpPriceController.text,
+    'selling_price': _sellingPriceController.text,
+    'product_description': _descriptionController.text,
+    'product_quantity': _quantityController.text,
+    'product_discount': _discountPercentageController.text,
+    'supplier_price': _supplierPriceController.text,
+    'GST': _selectedGST,
+    'supplier': _selectedSupplier, // Ensure this is an ID, not null
+    'expiry_date': _expiryDateController.text, // Already in YYYY-MM-DD
+    'MFD': _mfdDateController.text, // Already in YYYY-MM-DD
+    'product_category': _selectedCategory,
+    'stock_status': _availabilityStatus,
+  };
 
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Product created successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      Navigator.pop(context); // Close modal
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to create product.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
+  bool success = await _apiService.createProduct(productData);
+
+  if (success) {
+    _showSnackBar('Product created successfully!', isSuccess: true);
+    Navigator.pop(context); // Close modal
+  } else {
+    _showSnackBar('Failed to create product.', isSuccess: false);
   }
+}
+
 
   Future<void> _loadSuppliers() async {
     List<String> suppliers = await _apiService.fetchSupplierNames();
@@ -362,7 +392,7 @@ class _MedicineFormState extends State<MedicineForm> {
               SizedBox(height: 16),
               DropdownComponent(
                 label: 'Availability Status',
-                items: ['Available', 'Unavailable'],
+                items: ['Available',],
                 selectedValue: _availabilityStatus,
                 onChanged: (value) {
                   setState(() {

@@ -275,47 +275,86 @@ class _MedicineeditState extends State<Medicineedit> {
     super.dispose();
   }
 
-  void _submitForm() async {
-    if (_formKey.currentState?.validate() ?? false) {
-      Map<String, dynamic> updatedProduct = {
-        'id': widget.product['id'],
-        'product_name': _nameController.text,
-        'brand_name': _brandController.text,
-        'product_category': _selectedCategory,
-        'expiry_date': _expiryDateController.text,
-        'MFD': _mfdController.text,
-        'product_batch_no': _batchnoNameController.text,
-        'product_quantity': _qtyController.text,
-        'generic_name': _genericNameController.text,
-        'product_price': _mrpPriceController.text,
-        'supplier_price': _supplierPriceController.text,
-        'selling_price': _sellingPriceController.text,
-        'product_description': _descriptionController.text,
-        'product_discount': _discountPercentageController.text,
-        'supplier': _selectedSupplier,
-        'GST': _selectedGST,
-        'stock_status': _availabilityStatusController
-            .text, // Use the controller's text here
-      };
 
-      bool success =
-          await apiService.updateProducts(widget.product['id'], updatedProduct);
+void _submitForm() async {
+  if (_formKey.currentState?.validate() ?? false) {
+    Map<String, dynamic> updatedProduct = {
+      'id': widget.product['id'],
+      'product_name': _nameController.text,
+      'brand_name': _brandController.text,
+      'product_category': _selectedCategory,
+      'expiry_date': _expiryDateController.text,
+      'MFD': _mfdController.text,
+      'product_batch_no': _batchnoNameController.text,
+      'product_quantity': _qtyController.text,
+      'generic_name': _genericNameController.text,
+      'product_price': _mrpPriceController.text,
+      'supplier_price': _supplierPriceController.text,
+      'selling_price': _sellingPriceController.text,
+      'product_description': _descriptionController.text,
+      'product_discount': _discountPercentageController.text,
+      'supplier': _selectedSupplier,
+      'GST': _selectedGST,
+      'stock_status': _availabilityStatusController.text,
+    };
+
+    // Ensure the product details are updated only if there is a change
+    bool isCategoryChanged = widget.product['product_category'] != _selectedCategory;
+    bool isSupplierChanged = widget.product['supplier_name'] != _selectedSupplier;
+
+    if (isCategoryChanged || isSupplierChanged) {
+      // Proceed to update only if category or supplier changed
+      bool success = await apiService.updateProducts(widget.product['id'], updatedProduct);
 
       if (success) {
-        widget.onAddProduct(updatedProduct);
-          ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Product updated successfully!'), backgroundColor: Colors.green),
-    );
+        widget.onAddProduct(updatedProduct); // Update the parent widget with new product data
+        _showSnackBar('Product updated successfully!', isSuccess: true);  // Success message
         Navigator.pop(context);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Failed to update product'),
-              backgroundColor: Colors.red),
-        );
+        _showSnackBar('Failed to update product', isSuccess: false);  // Failure message
       }
+    } else {
+      // If no changes were made to the category or supplier, just show a message
+      _showSnackBar('No changes were made to the category or supplier.', isSuccess: false);  // No change message
     }
   }
+}
+
+void _showSnackBar(String message, {bool isSuccess = false}) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Row(
+        children: [
+          Icon(
+            isSuccess ? Icons.check_circle : Icons.error,
+            color: isSuccess ? Colors.greenAccent : Colors.redAccent,
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Poppins',
+              ),
+            ),
+          ),
+        ],
+      ),
+      backgroundColor: isSuccess ? Color(0xFF00796B) : Color(0xFFD32F2F),
+      behavior: SnackBarBehavior.floating,
+      margin: EdgeInsets.all(16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      duration: Duration(seconds: 3),
+      elevation: 10,
+    ),
+  );
+}
+
 
   @override
   Widget build(BuildContext context) {

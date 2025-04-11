@@ -187,7 +187,8 @@ class _StaffCardState extends State<StaffCard> {
     );
   }
 
- void _showDeleteConfirmationDialog(BuildContext context) {
+
+void _showDeleteConfirmationDialog(BuildContext context) {
   showDialog(
     context: context,
     builder: (context) {
@@ -197,7 +198,7 @@ class _StaffCardState extends State<StaffCard> {
         content: Text('Are you sure you want to delete ${widget.staff['name']}?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context), // Close dialog
             child: Text('Cancel', style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
@@ -205,11 +206,34 @@ class _StaffCardState extends State<StaffCard> {
               Navigator.pop(context); // Close the dialog
 
               try {
-                await _apiService.deleteUserFromApi(widget.staff['id']!, widget.onDelete);
+                // Attempt to delete the staff member
+                bool success = await _apiService.deleteUserFromApi(
+                  widget.staff['id']!,
+                  widget.onDelete,
+                );
+
+                // Display the appropriate SnackBar based on the result
+                if (success) {
+                  // Success: Show green SnackBar
+                  _showSnackBar(
+                    '${widget.staff['name']} deleted successfully!',
+                    isSuccess: true,
+                  );
+                } else {
+                  // Failure: Show red SnackBar
+                  _showSnackBar(
+                    'Failed to delete ${widget.staff['name']}',
+                    isSuccess: false,
+                  );
+                }
               } catch (e) {
-                print("Error deleting staff: $e");
+                // Error: Show red SnackBar for error
+                _showSnackBar(
+                  'An error occurred while deleting the user.',
+                  isSuccess: false,
+                );
+                print("Error deleting staff: $e"); // Optional: print error to console
               }
-              
             },
             child: Text('Delete'),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
@@ -219,6 +243,42 @@ class _StaffCardState extends State<StaffCard> {
     },
   );
 }
+
+void _showSnackBar(String message, {bool isSuccess = false}) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Row(
+        children: [
+          Icon(
+            isSuccess ? Icons.check_circle : Icons.error,
+            color: isSuccess ? Colors.greenAccent : Colors.redAccent,
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Poppins',
+              ),
+            ),
+          ),
+        ],
+      ),
+      backgroundColor: isSuccess ? Color(0xFF00796B) : Color(0xFFD32F2F),
+      behavior: SnackBarBehavior.floating,
+      margin: EdgeInsets.all(16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      duration: Duration(seconds: 3),
+      elevation: 10,
+    ),
+  );
+}
+
 
 
  

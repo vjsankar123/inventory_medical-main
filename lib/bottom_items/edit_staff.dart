@@ -60,39 +60,69 @@ void initState() {
     addressController.dispose();
     super.dispose();
   }
+void _updateUser() async {
+  Map<String, dynamic> updatedStaff = {
+    "username": nameController.text,
+    "email": emailController.text,
+    "password": passwordController.text,
+    "confirm_password": _passwordConfirmationController.text,
+    "role": selectedRole,
+    "contact_number": contactController.text,
+    "address_details": addressController.text,
+    "user_id_proof": aadhaarController.text,
+  };
 
-  void _updateUser() async {
-    Map<String, dynamic> updatedstaff = {
-      "username": nameController.text,
-      "email": emailController.text,
-      "password": passwordController.text,
-      "confirm_password": _passwordConfirmationController.text,
-      "role": selectedRole,
-      "contact_number": contactController.text,
-      "address_details": addressController.text,
-      "user_id_proof": aadhaarController.text,
-    };
+  bool success = await _apiService.updateUser(
+      widget.staffData['id'].toString(), updatedStaff);
 
-    bool success = await _apiService.updateUser(
-        widget.staffData['id'].toString(), updatedstaff);
-
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('User updated successfully!'),
-            backgroundColor: Colors.green),
-      );
-      widget.onSave(updatedstaff);
-      Navigator.pop(context);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('Failed to update user.'),
-            backgroundColor: Colors.red),
-      );
-    }
+  if (success) {
+    // Show success message using _showSnackBar
+    _showSnackBar('User updated successfully!', isSuccess: true);
+    widget.onSave(updatedStaff);
+    Navigator.pop(context);
+  } else {
+    // Show failure message using _showSnackBar
+    _showSnackBar('Failed to update user.', isSuccess: false);
   }
+}
 
+
+
+
+void _showSnackBar(String message, {bool isSuccess = false}) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Row(
+        children: [
+          Icon(
+            isSuccess ? Icons.check_circle : Icons.error,
+            color: isSuccess ? Colors.greenAccent : Colors.redAccent,
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Poppins',
+              ),
+            ),
+          ),
+        ],
+      ),
+      backgroundColor: isSuccess ? Color(0xFF00796B) : Color(0xFFD32F2F),
+      behavior: SnackBarBehavior.floating,
+      margin: EdgeInsets.all(16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      duration: Duration(seconds: 3),
+      elevation: 10,
+    ),
+  );
+}
   // void _showSaveConfirmation() {
   //   showModalBottomSheet(
   //     context: context,

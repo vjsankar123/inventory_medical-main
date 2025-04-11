@@ -18,7 +18,7 @@ final ApiService apiService = ApiService();
 
 class _ReturnPageState extends State<ReturnPage> {
   // Data for the return table
-   List<Map<String, dynamic>> returnData = [];
+  List<Map<String, dynamic>> returnData = [];
   final List<Map<String, dynamic>> returnDataList = [];
 
   List<Map<String, dynamic>> productList = [];
@@ -34,76 +34,21 @@ class _ReturnPageState extends State<ReturnPage> {
   ScrollController _scrollController = ScrollController();
   final GlobalKey<FormState> _productFormKey = GlobalKey<FormState>();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
- int _currentPage = 1;
+  int _currentPage = 1;
   bool _isFetchingMore = false;
   final int _limit = 10; // Number of items per page
   bool _hasMore = true; // Track if there are more pages
-
+//  int totalPages = 1;
   bool _isSearching = false;
   bool isScrolled = false;
   bool _isLoading = true;
 
-
-
- Future<void> fetchAllReturns({bool isLoadMore = false}) async {
-     if (_isFetchingMore) return;
-
-    setState(() {
-      _isFetchingMore = true;
-    });
-
-    try {
-      final returns = await apiService.fetchReturns(page: _currentPage, limit: _limit);
-      setState(() {
-        if (isLoadMore) {
-          returnData.addAll(returns);
-        } else {
-          returnData = returns;
-        }
-
-        _isFetchingMore = false;
-        _hasMore =
-            _currentPage < apiService.totalPages; // Ensure this is updated
-      });
-    } catch (e) {
-      print('Error fetching categories: $e');
-      setState(() {
-        _isFetchingMore = false;
-      });
-    }
-  }
-
-Future<void> fetchProductsByInvoice(String invoiceId) async {
-  try {
-    final response = await apiService.getProductsByInvoice(invoiceId);
-
-    if (response.isNotEmpty) {
-      setState(() {
-        productList = response['products'];
-        invoiceIdController.text = response['invoice_id']; // ✅ Update invoice_id
-      });
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No products found for this invoice')));
-    }
-  } catch (e) {
-    print('Error fetching products: $e');
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('Failed to fetch products')));
-  }
-}
-
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (invoiceIdController.text.isNotEmpty) {
-        fetchProductsByInvoice(invoiceIdController.text.trim());
-      }
-    });
-     fetchAllReturns();
+    fetchAllReturns(); // Fetch returns on load
 
-      _scrollController.addListener(() {
+    _scrollController.addListener(() {
       if (_scrollController.position.pixels >=
           _scrollController.position.maxScrollExtent - 200) {
         if (_hasMore && !_isFetchingMore) {
@@ -116,189 +61,245 @@ Future<void> fetchProductsByInvoice(String invoiceId) async {
     });
   }
 
- void openProductSearchForm() {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      String? localSelectedProductId = selectedProductId;
+  Future<void> fetchAllReturns({bool isLoadMore = false}) async {
+    if (_isFetchingMore) return;
 
-      return StatefulBuilder(
-        builder: (context, setDialogState) {
-          // Ensure unique product list
-          final uniqueProducts = {
-            for (var product in productList) product['product_id']: product
-          }.values.toList();
-
-          return AlertDialog(
-            backgroundColor: Colors.white,
-            title: Text('Search Product'),
-            content: SingleChildScrollView(
-              child: Form(
-                key: _productFormKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    DropdownButtonFormField<String>(
-                      value: localSelectedProductId,
-                      hint: Text('Select Product'),
-                      items: uniqueProducts.map((product) {
-                        return DropdownMenuItem<String>(
-                          value: product['product_id'].toString(),
-                          child: Text(product['product_name'] ?? ''),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setDialogState(() {
-                          localSelectedProductId = value;
-                        });
-
-                        if (value != null) {
-                          final selected = uniqueProducts.firstWhere(
-                              (product) =>
-                                  product['product_id'].toString() == value);
-
-                          setState(() {
-                            selectedProductId = value;
-                          });
-
-                          // Populate the controllers
-                          productIdController.text =
-                              selected['product_id'].toString();
-                          productNameController.text =
-                              selected['product_name'];
-                          quantityController.text =
-                              selected['quantity'].toString();
-                        }
-                      },
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please select a product';
-                        }
-                        return null;
-                      },
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20.0),
-                        ),
-                      ),
-                      dropdownColor: Colors.white,
-                    ),
-                    SizedBox(height: 10),
-                    TextFormField(
-                      controller: quantityController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Quantity',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12.0),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter quantity';
-                        }
-                        if (int.tryParse(value) == null ||
-                            int.parse(value) <= 0) {
-                          return 'Enter a valid positive number';
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(height: 10),
-                    TextFormField(
-                      controller: reasonController,
-                      maxLines: 3,
-                      decoration: InputDecoration(
-                        labelText: 'Return Description',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12.0),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please provide a return description';
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            actions: [
-              ElevatedButton(
-                onPressed: () {
-                  if (_productFormKey.currentState!.validate()) {
-                    Navigator.pop(context);
-                    submitReturn();
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF028090),
-                ),
-                child: Text('Return', style: TextStyle(color: Colors.white)),
-              ),
-            ],
-          );
-        },
-      );
-    },
-  );
-}
-
-void submitReturn() async {
-  if (selectedProductId == null ||
-      quantityController.text.isEmpty ||
-      reasonController.text.isEmpty) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('Please fill all fields')));
-    return;
-  }
-
-  final newReturn = {
-    "invoice_id": invoiceIdController.text.trim(),
-    "returnedProducts": [
-      {
-        "product_id": int.parse(productIdController.text.trim()),
-        "quantity": int.parse(quantityController.text.trim()),
-        "return_reason": reasonController.text.trim(),
-      }
-    ]
-  };
-
-  bool isSuccess = await apiService.createReturn(newReturn);
-
-  if (isSuccess) {
-    ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Return successfully processed')));
-
-    // Add the new return data to the table immediately
     setState(() {
-      returnData.insert(0, {
-        'invoice_id': invoiceIdController.text.trim(),
-        'product_name': productNameController.text,
-        'quantity': int.parse(quantityController.text.trim()),
-        'return_reason': reasonController.text.trim(),
-      });
+      _isLoading = true;
     });
 
-    clearFields();
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to process return. Try again.')));
+    try {
+      final returns =
+          await apiService.fetchReturns(page: _currentPage, limit: _limit);
+      setState(() {
+        if (isLoadMore) {
+          returnData.addAll(returns);
+        } else {
+          returnData = returns;
+        }
+        _isLoading = false;
+        _isFetchingMore = false;
+        _hasMore =
+            returns.length == _limit; // ✅ Fixed: totalPages is now defined
+      });
+    } catch (e) {
+      print('Error fetching returns: $e');
+      setState(() {
+        _isLoading = false;
+        _isFetchingMore = false;
+      });
+    }
   }
-}
 
-void clearFields() {
-  invoiceIdController.clear();
-  productIdController.clear();
-  productNameController.clear();
-  quantityController.clear();
-  reasonController.clear();
-  selectedProductId = null;
-  setState(() {});
-}
+  Future<void> fetchProductsByInvoice(String invoiceId) async {
+    try {
+      final response = await apiService.getProductsByInvoice(invoiceId);
 
+      if (response.isNotEmpty) {
+        setState(() {
+          productList = response['products'];
+          invoiceIdController.text =
+              response['invoice_id']; // ✅ Update invoice_id
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('No products found for this invoice')));
+      }
+    } catch (e) {
+      print('Error fetching products: $e');
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Failed to fetch products')));
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void openProductSearchForm() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        String? localSelectedProductId = selectedProductId;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            // Ensure unique product list
+            final uniqueProducts = {
+              for (var product in productList) product['product_id']: product
+            }.values.toList();
+
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              title: Text('Search Product'),
+              content: SingleChildScrollView(
+                child: Form(
+                  key: _productFormKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      DropdownButtonFormField<String>(
+                        value: localSelectedProductId,
+                        hint: Text('Select Product'),
+                        items: uniqueProducts.map((product) {
+                          return DropdownMenuItem<String>(
+                            value: product['product_id'].toString(),
+                            child: Text(product['product_name'] ?? ''),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setDialogState(() {
+                            localSelectedProductId = value;
+                          });
+
+                          if (value != null) {
+                            final selected = uniqueProducts.firstWhere(
+                                (product) =>
+                                    product['product_id'].toString() == value);
+
+                            setState(() {
+                              selectedProductId = value;
+                            });
+
+                            // Populate the controllers
+                            productIdController.text =
+                                selected['product_id'].toString();
+                            productNameController.text =
+                                selected['product_name'];
+                            quantityController.text =
+                                selected['quantity'].toString();
+                          }
+                        },
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please select a product';
+                          }
+                          return null;
+                        },
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(20.0),
+                          ),
+                        ),
+                        dropdownColor: Colors.white,
+                      ),
+                      SizedBox(height: 10),
+                      TextFormField(
+                        controller: quantityController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Quantity',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12.0),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter quantity';
+                          }
+                          if (int.tryParse(value) == null ||
+                              int.parse(value) <= 0) {
+                            return 'Enter a valid positive number';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: 10),
+                      TextFormField(
+                        controller: reasonController,
+                        maxLines: 3,
+                        decoration: InputDecoration(
+                          labelText: 'Return Description',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12.0),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please provide a return description';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                ElevatedButton(
+                  onPressed: () {
+                    if (_productFormKey.currentState!.validate()) {
+                      Navigator.pop(context);
+                      submitReturn();
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF028090),
+                  ),
+                  child: Text('Return', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void submitReturn() async {
+    if (selectedProductId == null ||
+        quantityController.text.isEmpty ||
+        reasonController.text.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Please fill all fields')));
+      return;
+    }
+
+    final newReturn = {
+      "invoice_id": invoiceIdController.text.trim(),
+      "returnedProducts": [
+        {
+          "product_id": int.parse(productIdController.text.trim()),
+          "quantity": int.parse(quantityController.text.trim()),
+          "return_reason": reasonController.text.trim(),
+        }
+      ]
+    };
+
+    bool isSuccess = await apiService.createReturn(newReturn);
+
+    if (isSuccess) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Return successfully processed')));
+
+      // Add the new return data to the table immediately
+      setState(() {
+        returnData.insert(0, {
+          'invoice_id': invoiceIdController.text.trim(),
+          'product_name': productNameController.text,
+          'quantity': int.parse(quantityController.text.trim()),
+          'return_reason': reasonController.text.trim(),
+        });
+      });
+
+      clearFields();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to process return. Try again.')));
+    }
+  }
+
+  void clearFields() {
+    invoiceIdController.clear();
+    productIdController.clear();
+    productNameController.clear();
+    quantityController.clear();
+    reasonController.clear();
+    selectedProductId = null;
+    setState(() {});
+  }
 
   void addNewReturn() {
     showDialog(
@@ -388,7 +389,7 @@ void clearFields() {
                 SizedBox(height: 16), // Space between the button and table
 
                 // Scrollable Table inside a bordered box
-                 Expanded(
+                Expanded(
                   child: Container(
                     padding: EdgeInsets.all(8),
                     child: ListView(
@@ -400,7 +401,8 @@ void clearFields() {
                             columnSpacing: 20,
                             headingRowHeight: 56,
                             dataRowHeight: 56,
-                            border: TableBorder.all(color: Colors.black,width: 1),
+                            border:
+                                TableBorder.all(color: Colors.black, width: 1),
                             columns: [
                               DataColumn(
                                   label: Text('S.No',
@@ -422,22 +424,27 @@ void clearFields() {
                                   label: Text('Reason For Return',
                                       style: TextStyle(
                                           fontWeight: FontWeight.bold))),
-
                             ],
                             rows: returnData.map((returnItem) {
                               int index = returnData.indexOf(returnItem);
                               return DataRow(
                                 cells: [
-                                 DataCell(Text('${(_currentPage - 1) * _limit + index + 1}')),  // Cor
+                                  DataCell(Text(
+                                      '${(_currentPage - 1) * _limit + index + 1}')), // Cor
                                   DataCell(
-                                     Text(returnItem['invoice_id'] ?? ''),),
-                                 DataCell(Text(returnItem['product_name'] ?? ''),),
+                                    Text(returnItem['invoice_id'] ?? ''),
+                                  ),
+                                  DataCell(
+                                    Text(returnItem['product_name'] ?? ''),
+                                  ),
 
-                                  DataCell(Text(returnItem['quantity']?.toString() ?? ''),
-),
                                   DataCell(
-                                      Text(returnItem['return_reason'] ?? ''),),
-                                 
+                                    Text(returnItem['quantity']?.toString() ??
+                                        ''),
+                                  ),
+                                  DataCell(
+                                    Text(returnItem['return_reason'] ?? ''),
+                                  ),
                                 ],
                               );
                             }).toList(),
@@ -447,7 +454,7 @@ void clearFields() {
                     ),
                   ),
                 ),
-                  Row(
+                Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     IconButton(

@@ -204,119 +204,126 @@ void _showErrorDialog(String message) {
   );
 }
 
-  void addCategory(String name, String description) async {
-    setState(() {});
-    Map<String, dynamic> categorydata = {
-      "id": _idController.text,
-      "category_name": name,
-      "description": description,
-    };
+ void addCategory(String name, String description) async {
+  setState(() {}); // Ensure UI updates if needed
+  
+  Map<String, dynamic> categoryData = {
+    "id": _idController.text,
+    "category_name": name,
+    "description": description,
+  };
 
-    bool success = await apiService.createCategory(categorydata);
+  bool success = await apiService.createCategory(categoryData);
 
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('Category created successfully!'),
-            backgroundColor: Colors.green),
-      );
-      Navigator.pop(context); // Close modal
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('Failed to create Category.'),
-            backgroundColor: Colors.red),
-      );
-    }
+  if (success) {
+    _showSnackBar('Category created successfully!', isSuccess: true);
+    Navigator.pop(context); // Close modal
+  } else {
+    _showSnackBar('Failed to create Category. Please try again.', isSuccess: false);
   }
-
-  void editCategory(int index, String newName, String newDescription) async {
-    String categoryId = categorylist[index]['id'] ?? '';
-
-    if (categoryId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('Category ID not found.'),
-            backgroundColor: Colors.red),
-      );
-      return;
-    }
-
-    Map<String, dynamic> updatedCategory = {
-      "category_name": newName,
-      "description": newDescription,
-    };
-
-    bool success = await apiService.updateCategory(categoryId, updatedCategory);
-
-    if (success) {
-      setState(() {
-        categorylist[index]['category_name'] = newName;
-        categorylist[index]['description'] = newDescription;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('Category updated successfully!'),
-            backgroundColor: Colors.green),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('Failed to update category.'),
-            backgroundColor: Colors.red),
-      );
-    }
-  }
-
-  void _showDeleteConfirmationDialog(
-      BuildContext context, String categoryId, int index) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          title: Text('Confirm Deletion'),
-          content: Text('Are you sure you want to delete this category?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: TextStyle(color: Colors.grey)),
+}
+void _showSnackBar(String message, {bool isSuccess = false}) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Row(
+        children: [
+          Icon(
+            isSuccess ? Icons.check_circle : Icons.error,
+            color: isSuccess ? Colors.greenAccent : Colors.redAccent,
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Poppins',
+              ),
             ),
-            TextButton(
-              onPressed: () async {
-                Navigator.pop(context); // Close the dialog
+          ),
+        ],
+      ),
+      backgroundColor: isSuccess ? Color(0xFF00796B) : Color(0xFFD32F2F),
+      behavior: SnackBarBehavior.floating,
+      margin: EdgeInsets.all(16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      duration: Duration(seconds: 3),
+      elevation: 10,
+    ),
+  );
+}
 
-                try {
-                  await apiService.deleteCatgeoryFromApi(categoryId, () {
-                    setState(() {
-                      categorylist.removeAt(index);
-                    });
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Category deleted successfully!'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
+
+ void editCategory(int index, String newName, String newDescription) async {
+  String categoryId = categorylist[index]['id'] ?? '';
+
+  if (categoryId.isEmpty) {
+    _showSnackBar('Category ID not found.', isSuccess: false);
+    return;
+  }
+
+  Map<String, dynamic> updatedCategory = {
+    "category_name": newName,
+    "description": newDescription,
+  };
+
+  bool success = await apiService.updateCategory(categoryId, updatedCategory);
+
+  if (success) {
+    setState(() {
+      categorylist[index]['category_name'] = newName;
+      categorylist[index]['description'] = newDescription;
+    });
+
+    _showSnackBar('Category updated successfully!', isSuccess: true);
+  } else {
+    _showSnackBar('Failed to update category. Please try again.', isSuccess: false);
+  }
+}
+
+
+void _showDeleteConfirmationDialog(
+    BuildContext context, String categoryId, int index) {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        backgroundColor: Colors.white,
+        title: Text('Confirm Deletion'),
+        content: Text('Are you sure you want to delete this category?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context); // Close the dialog
+
+              try {
+                await apiService.deleteCatgeoryFromApi(categoryId, () {
+                  setState(() {
+                    categorylist.removeAt(index);
                   });
-                } catch (e) {
-                  print("Error deleting category: $e");
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Failed to delete category.'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              },
-              child: Text('Delete'),
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-            ),
-          ],
-        );
-      },
-    );
-  }
+                  _showSnackBar('Category deleted successfully!', isSuccess: true);
+                });
+              } catch (e) {
+                print("Error deleting category: $e");
+                _showSnackBar('Failed to delete category.', isSuccess: false);
+              }
+            },
+            child: Text('Delete'),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+          ),
+        ],
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {

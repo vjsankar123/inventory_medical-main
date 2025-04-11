@@ -36,6 +36,7 @@ class _StockReportPageState extends State<StockReportPage> {
     _fetchProducts();
   }
 
+
   void exportToCSV(String status) async {
     try {
       await apiService.exportedCSVReport(status);
@@ -62,20 +63,25 @@ class _StockReportPageState extends State<StockReportPage> {
     }
   }
 
-  Future<void> _fetchProducts() async {
-    try {
-      final fetchedProducts = await apiService.stockProducts(
-        status: selectedStatus == 'All' ? null : selectedStatus,
-        search: searchController.text.isNotEmpty ? searchController.text : null,
-      );
+ Future<void> _fetchProducts() async {
+  try {
+    final fetchedProducts = await apiService.stockProducts(
+      status: selectedStatus == 'All' ? null : selectedStatus,
+      search: searchController.text.isNotEmpty ? searchController.text : null,
+    );
 
-      setState(() {
-        _stockData = fetchedProducts;
-      });
-    } catch (e) {
-      print("Error fetching products: $e");
+    setState(() {
+      _stockData = fetchedProducts; // Ensure empty array if null
+    });
+
+    if (_stockData.isEmpty) {
+      print("No products found.");
     }
+  } catch (e) {
+    print("Error fetching products: $e");
   }
+}
+
 
   Future<void> _fetchProductSuggestions(String query) async {
     if (query.isEmpty) {
@@ -95,9 +101,9 @@ class _StockReportPageState extends State<StockReportPage> {
     }
   }
 
-  Color _getStatusColor(String status) {
+   Color _getStatusColor(String status) {
     switch (status) {
-      case 'Out of Stock':
+      case 'OutofStock':
         return Colors.red;
       case 'Available':
         return Colors.green;
@@ -221,7 +227,7 @@ class _StockReportPageState extends State<StockReportPage> {
                         border: Border.all(color: Colors.black, width: 1),
                         borderRadius: BorderRadius.circular(12.0),
                       ),
-                      child: DropdownButton<String>(
+                       child: DropdownButton<String>(
                         value: selectedStatus,
                         onChanged: (String? newValue) {
                           setState(() {
@@ -229,7 +235,7 @@ class _StockReportPageState extends State<StockReportPage> {
                             _fetchProducts(); // Fetch with new status
                           });
                         },
-                        items: ['All', 'Available', 'Low Stock', 'Out of Stock']
+                         items: ['All', 'Available', 'Low Stock', 'Out of Stock']
                             .map<DropdownMenuItem<String>>(
                                 (String value) => DropdownMenuItem<String>(
                                       value: value,
